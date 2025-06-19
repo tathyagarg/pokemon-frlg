@@ -1,5 +1,4 @@
 import re
-import json
 
 import httpx
 from tortoise import run_async
@@ -17,42 +16,117 @@ async def ping_command(_: dict) -> dict:
         'response_type': 'in_channel'
     }
 
-@client.command('/start')
-async def game_command(data: dict) -> dict:
-    payload = data.get('payload', {})
 
+@client.command('/start')
+async def start_command(data: dict) -> dict:
+    payload = data.get('payload', {})
+    
     async with httpx.AsyncClient() as http_client:
-        response = await http_client.get(
-            f'https://slack.com/api/{slack_constants.EP_USER_PROFILE_GET}?user={payload["user_id"]}',
+        await http_client.post(
+            f'https://slack.com/api/{slack_constants.EP_VIEW_OPEN}',
             headers={
                 'Authorization': f'Bearer {client.BOT_TOKEN}',
+            },
+            json={
+                'trigger_id': payload.get('trigger_id'),
+                'view': {
+                    'type': 'modal',
+                    'title': {
+                        'type': 'plain_text',
+                        'text': 'Start your journey!',
+                    },
+                    'blocks': [
+                        {
+                            'type': 'input',
+                            'block_id': 'gender',
+                            'label': {
+                                'type': 'plain_text',
+                                'text': 'Gender'
+                            },
+                            'element': {
+                                'type': 'static_select',
+                                'placeholder': {
+                                    'type': 'plain_text',
+                                    'text': 'Select your gender'
+                                },
+                                'options': [
+                                    {
+                                        'text': {
+                                            'type': 'plain_text',
+                                            'text': 'Male'
+                                        },
+                                        'value': 'male'
+                                    },
+                                    {
+                                        'text': {
+                                            'type': 'plain_text',
+                                            'text': 'Female'
+                                        },
+                                        'value': 'female'
+                                    },
+                                    {
+                                        'text': {
+                                            'type': 'plain_text',
+                                            'text': 'Other'
+                                        },
+                                        'value': 'other'
+                                    },
+                                ],
+                                'action_id': 'gender'
+                            }
+                        },
+                        {
+                            'type': 'input',
+                            'block_id': 'name',
+                            'label': {
+                                'type': 'plain_text',
+                                'text': 'Your Name (your Slack name will be used if you leave this blank)',
+                            },
+                            'element': {
+                                'type': 'plain_text_input',
+                                'action_id': 'name',
+                                'placeholder': {
+                                    'type': 'plain_text',
+                                    'text': 'Enter your name'
+                                },
+                                'multiline': False,
+                            },
+                            'optional': True
+                        },
+                        {
+                            'type': 'input',
+                            'block_id': 'opponent',
+                            'label': {
+                                'type': 'plain_text',
+                                'text': 'Opponent Name (optional, defaults to Gary)',
+                            },
+                            'element': {
+                                'type': 'plain_text_input',
+                                'action_id': 'opponent',
+                                'placeholder': {
+                                    'type': 'plain_text',
+                                    'text': 'Enter your opponent\'s name'
+                                },
+                                'multiline': False,
+                            },
+                            'optional': True
+                        }
+                    ],
+                    'close': {
+                        'type': 'plain_text',
+                        'text': 'Cancel'
+                    },
+                    'submit': {
+                        "type": "plain_text",
+                        "text": "Start!"
+                    },
+                    'callback_id': 'start_game_modal',
+                }
             }
         )
 
-        data = response.json()
-        if not data.get('ok'):
-            return {
-                'text': 'Failed to retrieve user profile.',
-                'response_type': 'ephemeral'
-            }
+    return {}
 
-        user_profile = data.get('profile', {})
-
-        user_name = user_profile.get('display_name', user_profile.get('real_name', 'Unknown User'))
-
-    result = await database.create_user(payload['user_id'], user_name)
-    if not result:
-        return {
-            'text': 'Failed to create user.',
-            'response_type': 'ephemeral'
-        }
-
-    mention = f'<@{payload["user_id"]}>'
-
-    return {
-        'text': f'{mention} has started a game!',
-        'response_type': 'in_channel'
-    }
 
 @client.command('/about')
 async def about_command(data: dict) -> dict:
@@ -96,6 +170,12 @@ async def about_command(data: dict) -> dict:
 	    ],
         'response_type': 'in_channel'
     }
+
+
+@client.command('/game')
+async def game_command(data: dict) -> dict:
+    ...
+
 
 if __name__ == "__main__":
     import asyncio

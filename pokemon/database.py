@@ -1,4 +1,5 @@
 import os
+import enum
 
 import dotenv
 from tortoise.models import Model
@@ -9,9 +10,19 @@ dotenv.load_dotenv()
 DB_FILENAME = os.getenv('DB_FILENAME', 'slackbot.db')
 
 
+class Gender(enum.Enum):
+    MALE = 'male'
+    FEMALE = 'female'
+    OTHER = 'other'
+
+
 class User(Model):
     id = fields.CharField(max_length=255, primary_key=True)
+    gender = fields.CharEnumField(enum_type=Gender, default='other')
+
     name = fields.CharField(max_length=255)
+    opponent_name = fields.CharField(max_length=255, default='Gary')
+
     position = fields.ForeignKeyField('models.Position', related_name='users', null=True, on_delete=fields.CASCADE)
     team = fields.ForeignKeyField('models.Team', related_name='users', null=True, on_delete=fields.CASCADE)
 

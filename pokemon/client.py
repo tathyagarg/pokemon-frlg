@@ -7,6 +7,7 @@ import dotenv
 import websockets
 
 from . import slack_constants
+from . import game_actions
 
 class Client:
     def __init__(self):
@@ -19,6 +20,10 @@ class Client:
 
         self.ws: websockets.ClientConnection | None = None
         self.client: httpx.AsyncClient | None = None
+
+        self._interactive_handlers_map = {
+            'view_submission': self._view_submission_handler,
+        }
 
     async def connect(self) -> None:
         async with httpx.AsyncClient() as client:
@@ -88,7 +93,7 @@ class Client:
                 if response:
                     response_url = payload.get('response_url')
                     if response_url and self.client:
-                        await self.client.post(
+                        slack_response = await self.client.post(
                             response_url,
                             json=response,
                             headers= {
@@ -96,8 +101,11 @@ class Client:
                                 'Authorization': f'Bearer {self.APP_TOKEN}'
                             }
                         )
+
             else:
                 print(f"No handler registered for command '{command}'")
+        elif data['type'] == slack_constants.EVENT_INTERACTIVE:
+            await self._interactive_handler(data)
         else:
             print(f"Unhandled event type: {data['type']} with:")
             print(json.dumps(data, indent=2))
@@ -114,3 +122,26 @@ class Client:
         await self.ws.send(json.dumps({
             'envelope_id': envelope_id,
         }))
+
+    async def _interactive_handler(self, data: dict) -> None:
+        payload = data.get('payload', {})
+
+        handler = self._interactive_handlers_map.get(payload.get('type'))
+        if handler:
+            print("Found handler")
+            await self.acknowledge(data.get('envelope_id', ''))
+            await handler(payload)
+        else:
+            print(f"No handler registered for interactive type '{payload.get('type')}'")
+
+    async def _view_submission_handler(self, payload: dict) -> None:
+        """
+            Handle view submission events.
+        """
+        view = payload.get('view', {})
+        calback_id = view.get('callback_id')
+
+        if calback_id in game_actions.VIEW_SUBMISSION_HANDLERS:
+            await game_actions.VIEW_SUBMISSION_HANDLERS[calback_id](payload)
+        else:
+            print(f"No handler registered for view submission with callback ID '{calback_id}'")
