@@ -13,6 +13,7 @@ class Client:
         dotenv.load_dotenv()
 
         self.APP_TOKEN: str = os.getenv('SLACK_APP_TOKEN', '')
+        self.BOT_TOKEN: str = os.getenv('SLACK_BOT_TOKEN', '')
 
         self.commands: dict[str, Callable] = {}
 
@@ -97,6 +98,9 @@ class Client:
                         )
             else:
                 print(f"No handler registered for command '{command}'")
+        else:
+            print(f"Unhandled event type: {data['type']} with:")
+            print(json.dumps(data, indent=2))
 
     async def acknowledge(self, envelope_id: str) -> None:
         """
