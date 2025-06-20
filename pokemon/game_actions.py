@@ -2,8 +2,9 @@ from httpx import AsyncClient
 
 from . import database
 from . import slack
+from . import checks
 
-async def handle_submit_start_game_modal(data: dict, client: AsyncClient, _: str, bot_token: str) -> tuple[str, dict] | None:
+async def handle_submit_start_game_modal(data: dict, client: AsyncClient, _: str, bot_token: str) -> dict:
     user_id = data.get('user', {}).get('id')
     user_name = data.get('user', {}).get('name')
 
@@ -31,11 +32,13 @@ async def handle_submit_start_game_modal(data: dict, client: AsyncClient, _: str
                 'channel': channel_id,
                 'blocks': [
                     {
-                        'type': 'section',
-                        'text': {
-                            'type': 'mrkdwn',
-                            'text': f'> /start used by <@{user_id}>'
-                        }
+                        'type': 'context',
+                        'elements': [
+                            {
+                                'type': 'mrkdwn',
+                                'text': f'> /start used by <@{user_id}>'
+                            }
+                        ]
                     },
                     {
                         'type': 'header',
@@ -49,11 +52,20 @@ async def handle_submit_start_game_modal(data: dict, client: AsyncClient, _: str
             }
         )
 
-        print(resp.text)
-
-    return
+    return {}
 
 
 VIEW_SUBMISSION_HANDLERS = {
     'start_game_modal': handle_submit_start_game_modal,
 }
+
+# ====================================================================================================
+
+# @checks.requires_registered
+async def handle_left_button_press(data: dict, client: AsyncClient, _: str, bot_token: str) -> dict:
+    return {}
+
+BUTTON_PRESS_HANDLERS = {
+    'left': handle_left_button_press,
+}
+

@@ -5,11 +5,12 @@ from tortoise import run_async
 
 from . import database
 from . import slack
-from .client import Client
+from . import client
+from . import checks
 
-client = Client()
+user = client.Client()
 
-@client.command('/ping')
+@user.command('/ping')
 async def ping_command(_: dict) -> dict:
     return {
         'text': 'Pong!',
@@ -17,7 +18,8 @@ async def ping_command(_: dict) -> dict:
     }
 
 
-@client.command('/start')
+@user.command('/start')
+@checks.requires_unregistered
 async def start_command(data: dict) -> dict:
     payload = data.get('payload', {})
 
@@ -28,7 +30,7 @@ async def start_command(data: dict) -> dict:
         await http_client.post(
             f'https://slack.com/api/{slack.constants.EP_VIEW_OPEN}',
             headers={
-                'Authorization': f'Bearer {client.BOT_TOKEN}',
+                'Authorization': f'Bearer {user.BOT_TOKEN}',
             },
             json=slack.payloads.START_GAME_MODAL(payload.get('trigger_id'), f'{channel_id}|{user_id}')
         )
@@ -36,7 +38,8 @@ async def start_command(data: dict) -> dict:
     return {}
 
 
-@client.command('/about')
+@user.command('/about')
+@checks.requires_registered
 async def about_command(data: dict) -> dict:
     payload = data.get('payload', {})
     command_text = payload.get('text', '').strip()
@@ -80,13 +83,14 @@ async def about_command(data: dict) -> dict:
     }
 
 
-@client.command('/game')
+@user.command('/game')
+@checks.requires_registered
 async def game_command(data: dict) -> dict:
-    ...
+    return slack.payloads.GAME_BLOCKS(data.get('payload', {}).get('user_id'))
 
 
 if __name__ == "__main__":
     import asyncio
 
     run_async(database.initialize_tables())
-    asyncio.run(client.connect())
+    asyncio.run(user.connect())

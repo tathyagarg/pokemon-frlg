@@ -23,6 +23,7 @@ class Client:
 
         self._interactive_handlers_map = {
             'view_submission': self._view_submission_handler,
+            'block_actions': self._block_actions_handler,
         }
 
     async def connect(self) -> None:
@@ -88,12 +89,12 @@ class Client:
                 if envelope_id:
                     await self.acknowledge(envelope_id)
 
-                response = await self.commands[command](data)
+                response = await self.commands[command](data=data)
 
                 if response:
                     response_url = payload.get('response_url')
                     if response_url and self.client:
-                        slack_response = await self.client.post(
+                        _ = await self.client.post(
                             response_url,
                             json=response,
                             headers= {
@@ -128,21 +129,40 @@ class Client:
 
         handler = self._interactive_handlers_map.get(payload.get('type'))
         if handler:
-            # print(json.dumps(payload, indent=2))
-
             await self.acknowledge(data.get('envelope_id', ''))
             await handler(payload)
         else:
             print(f"No handler registered for interactive type '{payload.get('type')}'")
 
     async def _view_submission_handler(self, payload: dict) -> None:
-        """
-            Handle view submission events.
-        """
         view = payload.get('view', {})
         calback_id = view.get('callback_id')
 
-        if calback_id in game_actions.VIEW_SUBMISSION_HANDLERS:
-            await game_actions.VIEW_SUBMISSION_HANDLERS[calback_id](payload, self.client or httpx.AsyncClient(), self.APP_TOKEN, self.BOT_TOKEN)
+        if (handler := game_actions.VIEW_SUBMISSION_HANDLERS.get(calback_id)):
+            await handler(payload, self.client or httpx.AsyncClient(), self.APP_TOKEN, self.BOT_TOKEN)
         else:
             print(f"No handler registered for view submission with callback ID '{calback_id}'")
+
+    async def _block_actions_handler(self, payload: dict) -> None:
+        actions = payload.get('actions', [])
+        for action in actions:
+            action_type = action.get('type')
+
+            if action_type == 'button':
+                if (handler := game_actions.BUTTON_PRESS_HANDLERS.get(action.get('value'))):
+                    resp = await handler(payload, self.client or httpx.AsyncClient(), self.APP_TOKEN, self.BOT_TOKEN)
+
+                    if resp:
+                        response_url = payload.get('response_url')
+                        if response_url and self.client:
+                            await self.client.post(
+                                response_url,
+                                json=resp,
+                                headers={
+                                    'Content-Type': 'application/json',
+                                    'Authorization': f'Bearer {self.APP_TOKEN}'
+                                }
+                            )
+            else:
+                print(f"Unhandled action type: {action_type} in block actions with payload: {json.dumps(payload, indent=2)}")
+

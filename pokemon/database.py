@@ -4,6 +4,7 @@ import enum
 import dotenv
 from tortoise.models import Model
 from tortoise import fields, Tortoise
+from tortoise.contrib.pydantic import pydantic_model_creator
 
 dotenv.load_dotenv()
 
@@ -42,6 +43,9 @@ class Team(Model):
 
 class TeamPokemon(Model):
     pokedex_id = fields.IntField()
+
+
+User_Pydantic = pydantic_model_creator(User, name='User')
 
 async def initialize_tables():
     await Tortoise.init(

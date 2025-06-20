@@ -95,3 +95,119 @@ START_GAME_MODAL = lambda trigger_id, private_metadata: {
         'private_metadata': private_metadata
     }
 }
+
+GAME_BLOCKS = lambda user_id: {
+    'blocks': [
+        {
+            'type': 'context',
+            'elements': [
+                {
+                    'type': 'mrkdwn',
+                    'text': f'> /game used by <@{user_id}>'
+                }
+            ]
+        },
+        {
+            'type': 'actions',
+            'block_id': 'movement_buttons',
+            'elements': [
+                {
+                    'type': 'button',
+                    'text': {
+                        'type': 'plain_text',
+                        'text': 'Left'
+                    },
+                    'value': 'left',
+                    'action_id': 'left_button'
+                },
+                {
+                    'type': 'button',
+                    'text': {
+                        'type': 'plain_text',
+                        'text': 'Right'
+                    },
+                    'value': 'right',
+                    'action_id': 'right_button'
+                },
+                {
+                    'type': 'button',
+                    'text': {
+                        'type': 'plain_text',
+                        'text': 'Up'
+                    },
+                    'value': 'up',
+                    'action_id': 'up_button'
+                },
+                {
+                    'type': 'button',
+                    'text': {
+                        'type': 'plain_text',
+                        'text': 'Down'
+                    },
+                    'value': 'down',
+                    'action_id': 'down_button'
+                }
+            ]
+        },
+        {
+            'type': 'actions',
+            'block_id': 'action_buttons',
+            'elements': [
+                {
+                    'type': 'button',
+                    'text': {
+                        'type': 'plain_text',
+                        'text': 'A'
+                    },
+                    'value': 'a',
+                    'action_id': 'a_button'
+                },
+                {
+                    'type': 'button',
+                    'text': {
+                        'type': 'plain_text',
+                        'text': 'B'
+                    },
+                    'value': 'b',
+                    'action_id': 'b_button'
+                },
+                {
+                    'type': 'button',
+                    'text': {
+                        'type': 'plain_text',
+                        'text': 'X'
+                    },
+                    'value': 'x',
+                    'action_id': 'x_button'
+                },
+                {
+                    'type': 'button',
+                    'text': {
+                        'type': 'plain_text',
+                        'text': 'Y'
+                    },
+                    'value': 'y',
+                    'action_id': 'y_button'
+                }
+            ]
+        },
+        {
+            'dispatch_action': True,
+            'type': 'input',
+            'block_id': 'mass_input',
+            'element': {
+                'type': 'plain_text_input',
+                'action_id': 'mass_input',
+                'placeholder': {
+                    'type': 'plain_text',
+                    'text': 'Mass input (use w a s d for movement, and a b x y for actions. e.g: w a s d a b x y)',
+                },
+            },
+            'label': {
+                'type': 'plain_text',
+                'text': 'Mass Input'
+            },
+        }
+    ],
+    'response_type': 'in_channel'
+}
