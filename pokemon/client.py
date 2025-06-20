@@ -6,7 +6,7 @@ import httpx
 import dotenv
 import websockets
 
-from . import slack_constants
+from .slack import constants
 from . import game_actions
 
 class Client:
@@ -30,7 +30,7 @@ class Client:
             self.client = client
 
             data = await client.post(
-                f"https://slack.com/api/{slack_constants.EP_APP_OPEN_CONNECTION}",
+                f"https://slack.com/api/{constants.EP_APP_OPEN_CONNECTION}",
                 headers={
                     'Content-Type': 'application/w-www-form-urlencoded',
                     'Authorization': f'Bearer {self.APP_TOKEN}'
@@ -79,7 +79,7 @@ class Client:
         assert data.get('type') == 'hello', "Expected 'hello' type message"
 
     async def _handle_event(self, data: dict) -> None:
-        if data['type'] == slack_constants.EVENT_SLASH_COMMAND:
+        if data['type'] == constants.EVENT_SLASH_COMMAND:
             payload = data.get('payload', {})
 
             command = payload.get('command')
@@ -104,7 +104,7 @@ class Client:
 
             else:
                 print(f"No handler registered for command '{command}'")
-        elif data['type'] == slack_constants.EVENT_INTERACTIVE:
+        elif data['type'] == constants.EVENT_INTERACTIVE:
             await self._interactive_handler(data)
         else:
             print(f"Unhandled event type: {data['type']} with:")
@@ -128,7 +128,8 @@ class Client:
 
         handler = self._interactive_handlers_map.get(payload.get('type'))
         if handler:
-            print("Found handler")
+            # print(json.dumps(payload, indent=2))
+
             await self.acknowledge(data.get('envelope_id', ''))
             await handler(payload)
         else:
@@ -142,6 +143,6 @@ class Client:
         calback_id = view.get('callback_id')
 
         if calback_id in game_actions.VIEW_SUBMISSION_HANDLERS:
-            await game_actions.VIEW_SUBMISSION_HANDLERS[calback_id](payload)
+            await game_actions.VIEW_SUBMISSION_HANDLERS[calback_id](payload, self.client or httpx.AsyncClient(), self.APP_TOKEN, self.BOT_TOKEN)
         else:
             print(f"No handler registered for view submission with callback ID '{calback_id}'")

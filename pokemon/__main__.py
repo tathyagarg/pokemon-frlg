@@ -4,7 +4,7 @@ import httpx
 from tortoise import run_async
 
 from . import database
-from . import slack_constants
+from . import slack
 from .client import Client
 
 client = Client()
@@ -20,109 +20,17 @@ async def ping_command(_: dict) -> dict:
 @client.command('/start')
 async def start_command(data: dict) -> dict:
     payload = data.get('payload', {})
-    
+
+    channel_id = payload.get('channel_id')
+    user_id = payload.get('user_id')
+
     async with httpx.AsyncClient() as http_client:
         await http_client.post(
-            f'https://slack.com/api/{slack_constants.EP_VIEW_OPEN}',
+            f'https://slack.com/api/{slack.constants.EP_VIEW_OPEN}',
             headers={
                 'Authorization': f'Bearer {client.BOT_TOKEN}',
             },
-            json={
-                'trigger_id': payload.get('trigger_id'),
-                'view': {
-                    'type': 'modal',
-                    'title': {
-                        'type': 'plain_text',
-                        'text': 'Start your journey!',
-                    },
-                    'blocks': [
-                        {
-                            'type': 'input',
-                            'block_id': 'gender',
-                            'label': {
-                                'type': 'plain_text',
-                                'text': 'Gender'
-                            },
-                            'element': {
-                                'type': 'static_select',
-                                'placeholder': {
-                                    'type': 'plain_text',
-                                    'text': 'Select your gender'
-                                },
-                                'options': [
-                                    {
-                                        'text': {
-                                            'type': 'plain_text',
-                                            'text': 'Male'
-                                        },
-                                        'value': 'male'
-                                    },
-                                    {
-                                        'text': {
-                                            'type': 'plain_text',
-                                            'text': 'Female'
-                                        },
-                                        'value': 'female'
-                                    },
-                                    {
-                                        'text': {
-                                            'type': 'plain_text',
-                                            'text': 'Other'
-                                        },
-                                        'value': 'other'
-                                    },
-                                ],
-                                'action_id': 'gender'
-                            }
-                        },
-                        {
-                            'type': 'input',
-                            'block_id': 'name',
-                            'label': {
-                                'type': 'plain_text',
-                                'text': 'Your Name (your Slack name will be used if you leave this blank)',
-                            },
-                            'element': {
-                                'type': 'plain_text_input',
-                                'action_id': 'name',
-                                'placeholder': {
-                                    'type': 'plain_text',
-                                    'text': 'Enter your name'
-                                },
-                                'multiline': False,
-                            },
-                            'optional': True
-                        },
-                        {
-                            'type': 'input',
-                            'block_id': 'opponent',
-                            'label': {
-                                'type': 'plain_text',
-                                'text': 'Opponent Name (optional, defaults to Gary)',
-                            },
-                            'element': {
-                                'type': 'plain_text_input',
-                                'action_id': 'opponent',
-                                'placeholder': {
-                                    'type': 'plain_text',
-                                    'text': 'Enter your opponent\'s name'
-                                },
-                                'multiline': False,
-                            },
-                            'optional': True
-                        }
-                    ],
-                    'close': {
-                        'type': 'plain_text',
-                        'text': 'Cancel'
-                    },
-                    'submit': {
-                        "type": "plain_text",
-                        "text": "Start!"
-                    },
-                    'callback_id': 'start_game_modal',
-                }
-            }
+            json=slack.payloads.START_GAME_MODAL(payload.get('trigger_id'), f'{channel_id}|{user_id}')
         )
 
     return {}
