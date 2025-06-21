@@ -7,7 +7,7 @@ import dotenv
 import websockets
 
 from .slack import constants
-from . import game_actions
+from . import game_actions, make_command_use_header
 
 class Client:
     def __init__(self):
@@ -92,6 +92,9 @@ class Client:
                 response = await self.commands[command](data=data)
 
                 if response:
+                    if 'blocks' in response:
+                        response['blocks'].insert(0, make_command_use_header(payload.get('user_id', ''), command))
+
                     response_url = payload.get('response_url')
                     if response_url and self.client:
                         _ = await self.client.post(

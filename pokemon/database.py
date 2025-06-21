@@ -2,13 +2,26 @@ import os
 import enum
 
 import dotenv
-from tortoise.models import Model
-from tortoise import fields, Tortoise
-from tortoise.contrib.pydantic import pydantic_model_creator
+from peewee import ForeignKeyField, IntegerField, SqliteDatabase, Model, CharField
 
 dotenv.load_dotenv()
 
 DB_FILENAME = os.getenv('DB_FILENAME', 'slackbot.db')
+
+db = SqliteDatabase(DB_FILENAME)
+
+class EnumField(CharField):
+    def __init__(self, choices, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.choices = choices
+        self.max_length = 255
+
+    def db_value(self, value):
+        return value.value
+
+    def python_value(self, value):
+        return self.choices(type(list(self.choices)[0].value)(value))
 
 
 class Gender(enum.Enum):
@@ -17,48 +30,51 @@ class Gender(enum.Enum):
     OTHER = 'other'
 
 
-class User(Model):
-    id = fields.CharField(max_length=255, primary_key=True)
-    gender = fields.CharEnumField(enum_type=Gender, default='other')
+class TeamPokemon(Model):
+    pokedex_id = IntegerField()
 
-    name = fields.CharField(max_length=255)
-    opponent_name = fields.CharField(max_length=255, default='Gary')
+    class Meta:
+        database = db
+        table_name = 'team_pokemon'
 
-    position = fields.ForeignKeyField('models.Position', related_name='users', null=True, on_delete=fields.CASCADE)
-    team = fields.ForeignKeyField('models.Team', related_name='users', null=True, on_delete=fields.CASCADE)
-
-class Position(Model):
-    scene = fields.CharField(max_length=255)
-    x = fields.IntField()
-    y = fields.IntField()
 
 class Team(Model):
-    slot_1 = fields.ForeignKeyField('models.TeamPokemon', related_name='team_slot_1', null=True, on_delete=fields.CASCADE)
-    slot_2 = fields.ForeignKeyField('models.TeamPokemon', related_name='team_slot_2', null=True, on_delete=fields.CASCADE)
-    slot_3 = fields.ForeignKeyField('models.TeamPokemon', related_name='team_slot_3', null=True, on_delete=fields.CASCADE)
-    slot_4 = fields.ForeignKeyField('models.TeamPokemon', related_name='team_slot_4', null=True, on_delete=fields.CASCADE)
-    slot_5 = fields.ForeignKeyField('models.TeamPokemon', related_name='team_slot_5', null=True, on_delete=fields.CASCADE)
-    slot_6 = fields.ForeignKeyField('models.TeamPokemon', related_name='team_slot_6', null=True, on_delete=fields.CASCADE)
+    slot_1 = ForeignKeyField(TeamPokemon, related_name='team_slot_1', null=True)
+    slot_2 = ForeignKeyField(TeamPokemon, related_name='team_slot_2', null=True)
+    slot_3 = ForeignKeyField(TeamPokemon, related_name='team_slot_3', null=True)
+    slot_4 = ForeignKeyField(TeamPokemon, related_name='team_slot_4', null=True)
+    slot_5 = ForeignKeyField(TeamPokemon, related_name='team_slot_5', null=True)
+    slot_6 = ForeignKeyField(TeamPokemon, related_name='team_slot_6', null=True)
+    
+    class Meta:
+        database = db
+        table_name = 'team'
 
+class User(Model):
+    id = CharField(max_length=255, primary_key=True, unique=True)
+    gender = EnumField(Gender, default='other')
 
-class TeamPokemon(Model):
-    pokedex_id = fields.IntField()
+    name = CharField(max_length=255)
+    opponent_name = CharField(max_length=255, default='Gary')
 
+    team = ForeignKeyField(Team, related_name='users', null=True)
 
-User_Pydantic = pydantic_model_creator(User, name='User')
+    scene = CharField(default='start')
+    pos_x = IntegerField(default=0)
+    pos_y = IntegerField(default=0)
 
-async def initialize_tables():
-    await Tortoise.init(
-        db_url=f'sqlite://{DB_FILENAME}',
-        modules={'models': ['pokemon.database']}
-    )
+    class Meta:
+        database = db
+        table_name = 'user'
 
-    await Tortoise.generate_schemas()
+def initialize_tables():
+    with db:
+        db.create_tables([User, Team, TeamPokemon], safe=True)
 
-async def create_user(user_id: str, name: str) -> User:
-    user = await User.create(id=user_id, name=name)
+def create_user(user_id: str, name: str) -> User:
+    user = User.create(id=user_id, name=name)
     return user
 
-async def get_user(user_id: str) -> User | None:
-    user = await User.filter(id=user_id).first()
+def get_user(user_id: str) -> User | None:
+    user = User.filter(id=user_id).first()
     return user

@@ -96,17 +96,8 @@ START_GAME_MODAL = lambda trigger_id, private_metadata: {
     }
 }
 
-GAME_BLOCKS = lambda user_id: {
+GAME_BLOCKS = lambda: {
     'blocks': [
-        {
-            'type': 'context',
-            'elements': [
-                {
-                    'type': 'mrkdwn',
-                    'text': f'> /game used by <@{user_id}>'
-                }
-            ]
-        },
         {
             'type': 'actions',
             'block_id': 'movement_buttons',
@@ -119,15 +110,6 @@ GAME_BLOCKS = lambda user_id: {
                     },
                     'value': 'left',
                     'action_id': 'left_button'
-                },
-                {
-                    'type': 'button',
-                    'text': {
-                        'type': 'plain_text',
-                        'text': 'Right'
-                    },
-                    'value': 'right',
-                    'action_id': 'right_button'
                 },
                 {
                     'type': 'button',
@@ -146,7 +128,16 @@ GAME_BLOCKS = lambda user_id: {
                     },
                     'value': 'down',
                     'action_id': 'down_button'
-                }
+                },
+                {
+                    'type': 'button',
+                    'text': {
+                        'type': 'plain_text',
+                        'text': 'Right'
+                    },
+                    'value': 'right',
+                    'action_id': 'right_button'
+                },
             ]
         },
         {

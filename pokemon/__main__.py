@@ -1,7 +1,6 @@
 import re
 
 import httpx
-from tortoise import run_async
 
 from . import database
 from . import slack
@@ -49,7 +48,7 @@ async def about_command(data: dict) -> dict:
         if (m := re.match(r'^<@([a-zA-Z0-9]+)|.*>', command_text)):
             user_id = m.group(1)
 
-    user = await database.get_user(user_id)
+    user = database.get_user(user_id)
     if not user:
         return {
             'text': 'User not found.',
@@ -70,7 +69,7 @@ async def about_command(data: dict) -> dict:
                 "fields": [
                     {
                         "type": "mrkdwn",
-                        "text": f"Position: {user.position.scene if user and user.position else 'Unknown'}"
+                        "text": f"Position: {user.scene}, X: {user.pos_x}, Y: {user.pos_y}"
                     },
                     {
                         "type": "mrkdwn",
@@ -86,11 +85,11 @@ async def about_command(data: dict) -> dict:
 @user.command('/game')
 @checks.requires_registered
 async def game_command(data: dict) -> dict:
-    return slack.payloads.GAME_BLOCKS(data.get('payload', {}).get('user_id'))
+    return slack.payloads.GAME_BLOCKS()
 
 
 if __name__ == "__main__":
     import asyncio
 
-    run_async(database.initialize_tables())
+    database.initialize_tables()
     asyncio.run(user.connect())

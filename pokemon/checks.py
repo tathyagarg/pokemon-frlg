@@ -1,14 +1,14 @@
-from httpx import AsyncClient
-from tortoise.exceptions import DoesNotExist
+from peewee import DoesNotExist
 
 from . import database
+from . import make_command_use_header
 
 def requires_registered(func):
     async def wrapper(**kwargs) -> dict:
         user_id = kwargs['data']['payload'].get('user_id', '')
 
         try:
-            await database.User.get(id=user_id)
+            database.User.get(database.User.id == user_id)
         except DoesNotExist:
             return {
                 'response_type': 'ephemeral',
@@ -19,24 +19,16 @@ def requires_registered(func):
 
     return wrapper
 
+
 def requires_unregistered(func):
     async def wrapper(**kwargs) -> dict:
         user_id = kwargs['data']['payload'].get('user_id', '')
 
         try:
-            await database.User.get(id=user_id)
+            database.User.get(database.User.id == user_id)
             return {
                 'response_type': 'ephemeral',
                 'blocks': [
-                    {
-                        'type': 'context',
-                        'elements': [
-                            {
-                                'type': 'mrkdwn',
-                                'text': f'> /start used by <@{user_id}>'
-                            }
-                        ]
-                    },
                     {
                         'type': 'section',
                         'text': {
