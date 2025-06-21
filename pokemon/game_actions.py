@@ -113,18 +113,19 @@ async def handle_mass_movement_input(*, data: dict) -> dict:
 
     movement_commands = []
 
-    repeat_count = 1
+    repeat_count = 0
 
     while movement:
         command = movement.pop(0)
 
         if command in ('w', 'a', 's', 'd'):
             dx, dy = as_movement_tuple(command)
-            movement_commands.append((dx * repeat_count, dy * repeat_count))
-            repeat_count = 1
+            movement_commands.append((dx * max(repeat_count, 1), dy * max(repeat_count, 1)))
+            repeat_count = 0
 
-        elif command in '123456789':
-            repeat_count = int(command)
+        elif command in '1234567890':
+            repeat_count *= 10
+            repeat_count += int(command)
 
     user = database.get_user(user_id)
     res = internals.movement.move_compound(user, movement_commands)

@@ -69,7 +69,7 @@ class User(Model):
 
     scene = CharField(default='player-bedroom')
     pos_x = IntegerField(default=5)
-    pos_y = IntegerField(default=6)
+    pos_y = IntegerField(default=5)
     direction = EnumField(Direction, default=Direction.UP)
 
     class Meta:
