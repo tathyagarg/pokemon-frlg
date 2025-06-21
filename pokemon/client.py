@@ -153,7 +153,22 @@ class Client:
 
             if action_type == 'button':
                 if (handler := game_actions.BUTTON_PRESS_HANDLERS.get(action.get('value'))):
-                    resp = await handler(payload, self.client or httpx.AsyncClient(), self.APP_TOKEN, self.BOT_TOKEN)
+                    resp = await handler(data=payload)
+
+                    if resp:
+                        response_url = payload.get('response_url')
+                        if response_url and self.client:
+                            await self.client.post(
+                                response_url,
+                                json=resp,
+                                headers={
+                                    'Content-Type': 'application/json',
+                                    'Authorization': f'Bearer {self.APP_TOKEN}'
+                                }
+                            )
+            elif action_type == 'plain_text_input':
+                if (handler := game_actions.PLAIN_TEXT_INPUT_HANDLERS.get(action.get('action_id'))):
+                    resp = await handler(data=payload)
 
                     if resp:
                         response_url = payload.get('response_url')

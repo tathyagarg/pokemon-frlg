@@ -1,4 +1,8 @@
+import json
+
 from httpx import AsyncClient
+
+from pokemon.internals.movement import as_movement_tuple
 
 from . import database, make_command_use_header
 from . import slack
@@ -56,35 +60,35 @@ VIEW_SUBMISSION_HANDLERS = {
 
 # ====================================================================================================
 
-async def handle_left_button_press(data: dict, _client: AsyncClient, _app_token: str, _bot_token: str) -> dict:
+async def handle_left_button_press(*, data: dict) -> dict:
     user_id = data.get('user', {}).get('id')
 
     user = database.get_user(user_id)
-    internals.movement.move_compound(user, [(-1, 0)])
+    internals.movement.move_compound(user, [as_movement_tuple('a')])
 
     return {}
 
-async def handle_right_button_press(data: dict, client: AsyncClient, _: str, bot_token: str) -> dict:
+async def handle_right_button_press(*, data: dict) -> dict:
     user_id = data.get('user', {}).get('id')
 
     user = database.get_user(user_id)
-    internals.movement.move_compound(user, [(1, 0)])
+    internals.movement.move_compound(user, [as_movement_tuple('d')])
 
     return {}
 
-async def handle_up_button_press(data: dict, client: AsyncClient, _: str, bot_token: str) -> dict:
+async def handle_up_button_press(*, data: dict) -> dict:
     user_id = data.get('user', {}).get('id')
 
     user = database.get_user(user_id)
-    internals.movement.move_compound(user, [(0, -1)])
+    internals.movement.move_compound(user, [as_movement_tuple('w')])
 
     return {}
 
-async def handle_down_button_press(data: dict, client: AsyncClient, _: str, bot_token: str) -> dict:
+async def handle_down_button_press(*, data: dict) -> dict:
     user_id = data.get('user', {}).get('id')
 
     user = database.get_user(user_id)
-    internals.movement.move_compound(user, [(0, 1)])
+    internals.movement.move_compound(user, [as_movement_tuple('s')])
 
     return {}
 
@@ -96,3 +100,40 @@ BUTTON_PRESS_HANDLERS = {
     'down': handle_down_button_press,
 }
 
+# ====================================================================================================
+#                                       Plain Text Input Handlers
+# ====================================================================================================
+
+async def handle_mass_movement_input(*, data: dict) -> dict:
+    print("Handling mass movement input...")
+
+    state = data.get('state', {})
+
+    movement = list(state.get('values', {}).get('mass_input', {}).get('mass_input', {}).get('value', '').replace(' ', ''))
+    user_id = data.get('user', {}).get('id')
+
+    print('mvmnt:', movement, 'state', json.dumps(data, indent=2))
+
+    movement_commands = []
+
+    repeat_count = 1
+
+    while movement:
+        command = movement.pop(0)
+
+        if command in ('w', 'a', 's', 'd'):
+            dx, dy = as_movement_tuple(command)
+            movement_commands.append((dx * repeat_count, dy * repeat_count))
+            repeat_count = 1
+
+        elif command in '123456789':
+            repeat_count = int(command)
+
+    user = database.get_user(user_id)
+    internals.movement.move_compound(user, movement_commands)
+
+    return {}
+
+PLAIN_TEXT_INPUT_HANDLERS = {
+    'mass_input': handle_mass_movement_input,
+}
