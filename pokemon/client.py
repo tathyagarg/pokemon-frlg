@@ -89,7 +89,7 @@ class Client:
                 if envelope_id:
                     await self.acknowledge(envelope_id)
 
-                response = await self.commands[command](data=data)
+                response = await self.commands[command](data=data, client=self.client, app_token=self.APP_TOKEN, bot_token=self.BOT_TOKEN)
 
                 if response:
                     if 'blocks' in response:
@@ -97,7 +97,7 @@ class Client:
 
                     response_url = payload.get('response_url')
                     if response_url and self.client:
-                        _ = await self.client.post(
+                        slack_response = await self.client.post(
                             response_url,
                             json=response,
                             headers= {
@@ -169,6 +169,8 @@ class Client:
             elif action_type == 'plain_text_input':
                 if (handler := game_actions.PLAIN_TEXT_INPUT_HANDLERS.get(action.get('action_id'))):
                     resp = await handler(data=payload)
+
+                    print(f"Response from handler: {resp}")
 
                     if resp:
                         response_url = payload.get('response_url')

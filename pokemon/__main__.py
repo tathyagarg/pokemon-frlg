@@ -2,6 +2,8 @@ import re
 
 import httpx
 
+from pokemon import internals
+
 from . import database
 from . import slack
 from . import client
@@ -19,7 +21,7 @@ async def ping_command(_: dict) -> dict:
 
 @user.command('/start')
 @checks.requires_unregistered
-async def start_command(data: dict) -> dict:
+async def start_command(data: dict, **_) -> dict:
     payload = data.get('payload', {})
 
     channel_id = payload.get('channel_id')
@@ -39,7 +41,7 @@ async def start_command(data: dict) -> dict:
 
 @user.command('/about')
 @checks.requires_registered
-async def about_command(data: dict) -> dict:
+async def about_command(data: dict, **_) -> dict:
     payload = data.get('payload', {})
     command_text = payload.get('text', '').strip()
 
@@ -84,8 +86,10 @@ async def about_command(data: dict) -> dict:
 
 @user.command('/game')
 @checks.requires_registered
-async def game_command(data: dict) -> dict:
-    return slack.payloads.GAME_BLOCKS()
+async def game_command(data: dict, client: httpx.AsyncClient, bot_token: str, user: database.UserLike, **_) -> dict:
+    img_path = internals.images.make_scene_image(user.scene, user.pos_x, user.pos_y, user.direction)
+
+    return slack.payloads.GAME_BLOCKS(f'https://pokemon.arson.dev/{img_path}')
 
 
 if __name__ == "__main__":

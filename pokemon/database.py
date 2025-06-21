@@ -1,5 +1,6 @@
 import os
 import enum
+from typing import Protocol
 
 import dotenv
 from peewee import ForeignKeyField, IntegerField, SqliteDatabase, Model, CharField
@@ -28,6 +29,13 @@ class Gender(enum.Enum):
     MALE = 'male'
     FEMALE = 'female'
     OTHER = 'other'
+
+
+class Direction(enum.Enum):
+    UP = 'back'
+    DOWN = 'front'
+    LEFT = 'left'
+    RIGHT = 'right'
 
 
 class TeamPokemon(Model):
@@ -59,13 +67,25 @@ class User(Model):
 
     team = ForeignKeyField(Team, related_name='users', null=True)
 
-    scene = CharField(default='start')
-    pos_x = IntegerField(default=0)
-    pos_y = IntegerField(default=0)
+    scene = CharField(default='player-bedroom')
+    pos_x = IntegerField(default=5)
+    pos_y = IntegerField(default=6)
+    direction = EnumField(Direction, default=Direction.UP)
 
     class Meta:
         database = db
         table_name = 'user'
+
+
+class UserLike(Protocol):
+    id: str
+    name: str
+    team: Team | None
+    scene: str
+    pos_x: int
+    pos_y: int
+    direction: Direction
+
 
 def initialize_tables():
     with db:

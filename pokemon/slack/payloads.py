@@ -96,8 +96,18 @@ START_GAME_MODAL = lambda trigger_id, private_metadata: {
     }
 }
 
-GAME_BLOCKS = lambda: {
+GAME_BLOCKS = lambda file_url: {
     'blocks': [
+        {
+            'type': 'image',
+            'alt_text': 'Game Scene',
+            'image_url': file_url,
+            'title': {
+                'type': 'plain_text',
+                'text': 'Game Scene'
+            },
+            'block_id': 'game_scene_image'
+        },
         {
             'type': 'actions',
             'block_id': 'movement_buttons',
@@ -198,7 +208,7 @@ GAME_BLOCKS = lambda: {
                 'type': 'plain_text',
                 'text': 'Mass Input'
             },
-        }
+        },
     ],
     'response_type': 'in_channel'
 }

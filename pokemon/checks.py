@@ -8,14 +8,14 @@ def requires_registered(func):
         user_id = kwargs['data']['payload'].get('user_id', '')
 
         try:
-            database.User.get(database.User.id == user_id)
+            user = database.User.get(database.User.id == user_id)
         except DoesNotExist:
             return {
                 'response_type': 'ephemeral',
                 'text': "You need to register before you can use this command. Please use the `/start` command to get started.",
             }
 
-        return await func(**kwargs)
+        return await func(user=user, **kwargs)
 
     return wrapper
 
